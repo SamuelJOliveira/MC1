@@ -1,12 +1,11 @@
-
-
-        
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <cctype>
 using namespace std;
 
 // 1) Teste de primalidade: trial division contando divisores
-bool ehPrime(long long n) {
+bool ehPrimo(long long n) {
     if (n < 2) return false;
     int count = 0;
     for (long long i = 1; i <= n; ++i) {
@@ -34,8 +33,16 @@ long long bezout(long long a, long long b, long long &x, long long &y) {
     return g;
 }
 
-// 4) Expoção modular ingênua: calcula (base^exp) mod mod
-long long modexp(long long base, long long exp, long long mod) {
+// 4) Inverso modular: retorna x tal que (a * x) % m == 1, ou -1 se não existir
+long long inversoModular(long long a, long long m) {
+    long long x, y;
+    long long g = bezout(a, m, x, y);
+    if (g != 1) return -1;
+    return (x % m + m) % m;
+}
+
+// 5) Expoção modular ingênua: calcula (base^exp) mod mod
+long long exponenciacaoModular(long long base, long long exp, long long mod) {
     long long res = 1;
     base %= mod;
     for (long long i = 0; i < exp; ++i) {
@@ -44,64 +51,98 @@ long long modexp(long long base, long long exp, long long mod) {
     return res;
 }
 
-int main() {
-    long long p, q, e;
-    string texto;
+// 6) RSA: cifrar=true para encriptar, false para decriptar
+string rsa(const string &texto, bool cifrar, long long p, long long q) {
+    if (!ehPrimo(p) || !ehPrimo(q) || p == q) {
+        return "ERRO";
+    }
 
-    // Leitura de p e q: devem ser primos e distintos
-    do {
-        cout << "Digite dois primos distintos p e q: ";
-        cin >> p >> q;
-        if (!ehPrime(p) || !ehPrime(q))
-            cout << "Erro: p e q devem ser primos.\n";
-        else if (p == q)
-            cout << "Erro: p e q devem ser diferentes.\n";
-    } while (!ehPrime(p) || !ehPrime(q) || p == q);
-
-    // Cálculo de phi = (p-1)*(q-1) e leitura de e válido
-    long long phi = (p - 1) * (q - 1);
-    do {
-        cout << "Digite o expoente publico e (1 < e < " << phi
-             << " e gcd(e,phi)=1): ";
-        cin >> e;
-    } while (e <= 1 || e >= phi || mdc(e, phi) != 1);
-
-    // Limpa buffer e lê texto puro (apenas A–Z)
-    cin.ignore();
-    cout << "Digite texto puro (A–Z): ";
-    getline(cin, texto);
-
-    // Geração de n e da chave privada d
     long long n = p * q;
-    long long x, y;
-    bezout(e, phi, x, y);
-    long long d = x % phi;
-    if (d < 0) d += phi;  // garante 0 ≤ d < phi
+    long long totiente = (p - 1) * (q - 1);
 
-    // --- Encriptação letra por letra ---
-    cout << "\nTexto cifrado:\n";
-    for (int i = 0; i < (int)texto.size(); ++i) {
-        char ch = texto[i];
-        // mapeia 'A'→10, 'B'→11, …, 'Z'→35
-        long long m = (ch - 'A') + 10;
-        long long c = modexp(m, e, n);
-        cout << c << ' ';
+    // escolhe e padrão se coprimo, senão busca próximo ímpar
+    long long e = 0;
+    if (65537 < totiente && mdc(65537, totiente) == 1) {
+        e = 65537;
     }
-    cout << "\n";
-
-    // --- Decriptação dos mesmos valores ---
-    cout << "\nTexto decifrado:\n";
-    for (int i = 0; i < (int)texto.size(); ++i) {
-        char ch = texto[i];
-        long long m = (ch - 'A') + 10;
-        long long c = modexp(m, e, n);
-        long long m2 = modexp(c, d, n);
-        // reconverte 10→'A', …, 35→'Z'
-        char out = char((m2 - 10) + 'A');
-        cout << out;
+    else if (17 < totiente && mdc(17, totiente) == 1) {
+        e = 17;
     }
-    cout << "\n";
+    else if (3 < totiente && mdc(3, totiente) == 1) {
+        e = 3;
+    }
+    else {
+        e = 3;
+        while (e < totiente && mdc(e, totiente) != 1) {
+            e += 2;
+        }
+    }
+    if (e >= totiente) return "ERRO";
 
-    return 0;
+    long long d = inversoModular(e, totiente);
+    if (d < 0) return "ERRO";
+
+    string resultado;
+
+    if (cifrar) {
+        // encripta cada caractere alfabético; mantém outros caracteres como estão
+        bool first = true;
+        for (char c : texto) {
+            if (isalpha(static_cast<unsigned char>(c))) {
+                if (!first) resultado += ' ';
+                long long cif = exponenciacaoModular((long long)c, e, n);
+                resultado += to_string(cif);
+                first = false;
+            }
+            else {
+                // inclui espaços ou pontuação diretamente
+                resultado += c;
+            }
+        }
+    }
+    else {
+        // decripta números separados por espaços
+        istringstream iss(texto);
+        string bloco;
+        while (iss >> bloco) {
+            // apenas tenta converter blocos que são inteiros
+            bool digitos = true;
+            for (char ch : bloco) {
+                if (!isdigit(static_cast<unsigned char>(ch))) {
+                    digitos = false;
+                    break;
+                }
+            }
+            if (digitos) {
+                long long cif = stoll(bloco);
+                long long m = exponenciacaoModular(cif, d, n);
+                resultado += static_cast<char>(m);
+            }
+            else {
+                // bloco não numérico: copia literal
+                resultado += bloco;
+            }
+        }
+    }
+
+    return resultado;
 }
 
+int main() {
+    long long p, q;
+    string texto;
+
+    if (!(cin >> p >> q)) {
+        cerr << "ERRO na leitura de p e q\n";
+        return 1;
+    }
+    cin.ignore();              // descarta newline após q
+    getline(cin, texto);       // lê linha inteira de texto
+
+    string cifrado   = rsa(texto, true,  p, q);
+    string decifrado = rsa(cifrado, false, p, q);
+
+    cout << cifrado   << "\n";
+    cout << decifrado << "\n";
+    return 0;
+}
