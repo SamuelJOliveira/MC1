@@ -124,37 +124,60 @@ using namespace std;
         return mdc(b, a % b);
     }
 
-    int bezout(int a, int b, int& x, int& y){
+// Algoritmo de Euclides Estendido (Coeficientes de Bézout) com comentários detalhados para prova oral
+// Função: calcula o mdc(a,b) e encontra inteiros x,y tais que a*x + b*y = mdc(a,b)
 
-        cout << "Caculando mdc(" << a << "," << b << ")" << endl;
+int bezout(int a, int b, int& x, int& y) {
+    // 1. Exibir qual mdc está sendo calculado: mdc(a,b)
+    cout << "Calculando mdc(" << a << "," << b << ")" << endl;
 
-        if (b == 0){
-            cout << "O mdc encontrado foi " << a << endl;
-            x = 1;
-            y = 0;
-            cout << "    [x=" << x << ", y=" << y << "]\n\n";
-            return a;
-        }
-
-        int x1, y1;
-
-        int mdc = bezout(b, a % b, x1, y1);
-
-        x = y1;
-        y = x1 - (a / b) * y1;
-                                    //b x1 + (a%b) y1 = mdc
-                                    //a x + b y = mdc
-                                    // b x1 + (a - a/b * b) y1 = mdc
-                                    // b x1 + a * y1 - a/b * b * y1 = mdc
-                                    // a * y1 + b (x1 * -a/b * y1) = a x + b y 
-                                    // x = y1 --- y = (x1 * -a/b * y1)
-
-        cout << "Para (a=" << a << ", b=" << b << "):\n";
-        cout << "x = y1 = " << y1 << "\n";
-        cout << "y = x1 - (a/b)*y1 = " << x1 << " - (" << a << "/" << b << ")*" << y1 << " = " << y << "\n\n";
-
-        return mdc;
+    // 2. Caso base: se b == 0, então mdc(a,0) = a, e os coeficientes são x=1, y=0
+    //    Porque a*1 + b*0 = a
+    if (b == 0) {
+        cout << "O mdc encontrado foi " << a << endl;
+        x = 1; // coeficiente para 'a'
+        y = 0; // coeficiente para 'b'
+        cout << "    [x=" << x << ", y=" << y << "]\n\n";
+        return a;
     }
+
+    // 3. Passo recursivo: chamar bezout trocando (a,b) por (b, a%b)
+    int x1, y1;
+    int mdc = bezout(b, a % b, x1, y1);
+
+    // 4. Recalculando coeficientes para o par (a,b)
+    //    Seja q = (a/b)
+    //    Como (a % b) = a - q*b, substituímos:
+    //      b*x1 + (a - q*b)*y1 = a*y1 + b*(x1 - q*y1)
+    //    Logo:
+    //      x = y1
+    //      y = x1 - q*y1
+    int q = a / b;
+    x = y1;
+    y = x1 - q * y1;
+
+    // 5. Exibir detalhes da recomposição dos coeficientes
+    cout << "Para (a=" << a << ", b=" << b << "):\n";
+    cout << "  q = floor(" << a << "/" << b << ") = " << q << "\n";
+    cout << "  Coeficientes retornados da recursão: x1=" << x1 << ", y1=" << y1 << "\n";
+    cout << "  => x = y1 = " << y1 << "\n";
+    cout << "  => y = x1 - q*y1 = " << x1 << " - " << q << "*" << y1 << " = " << y << "\n\n";
+
+    // 6. Retornar o mdc, que permanece inalterado em todos os níveis
+    return mdc;
+}
+/*
+Notas para prova oral:
+- Explique o Algoritmo de Euclides: mdc(a,b) = mdc(b, a mod b), até b=0.
+- No caso base, detalhe por que x=1, y=0 satisfazem a*x + b*y = a.
+- Na recursão, mostre como trocamos (a,b) por (b, a%b).
+- Ao voltar da recursão, demonstre a álgebra:
+    a mod b = a - q*b
+    b*x1 + (a mod b)*y1 = b*x1 + (a - q*b)*y1
+                       = a*y1 + b*(x1 - q*y1)
+- Explique que q = floor(a/b) e que divisão inteira em C++ realiza o floor para positivos.
+- Use um exemplo prático (por ex. a=30, b=21) para ilustrar cada quadro.
+*/
 
 
     
