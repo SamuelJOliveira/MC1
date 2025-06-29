@@ -43,7 +43,7 @@
     }
 
         // main bezout
-    int main() { 
+    int main() { // 252 198
         int a, b;
         cout << "Digite a e b: ";
         cin >> a >> b;

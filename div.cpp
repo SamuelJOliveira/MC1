@@ -22,6 +22,7 @@
             }
 
             // Anda na direção correta com base no sinal de a * b para nao ficar em loop infinito e atingir a condicao de quebra
+            // para que o resto esteja entre o 0 e o modulo de b;
             if (a * b < 0) {
                 q = q - 1;
             } else {

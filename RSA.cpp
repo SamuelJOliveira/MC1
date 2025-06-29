@@ -152,7 +152,7 @@ string rsa(const string &texto, bool cifrar, long long p, long long q)
     }
 }
 
-int main() {
+int main() { //p e q = 61 53 e texto: HELLO
     long long p, q;
     cout << "Digite dois numeros primos p e q: ";
     cin >> p >> q;

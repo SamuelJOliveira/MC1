@@ -96,7 +96,7 @@ string rsa(const string &texto, bool cifrar, long long p, long long q)
         string decodificado;
         string bloco;
         size_t i = 0;
-        while (i < texto.length()) {
+                while (i < texto.length()) {
             if (texto[i] == ' '){
                  ++i;
                  continue;

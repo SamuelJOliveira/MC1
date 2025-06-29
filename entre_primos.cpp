@@ -3,7 +3,7 @@ using namespace std;
 
     void primos_entre(int a, int b) {
         int qntd_primos = 0;      // Conta a quantidade de primos encontrados
-        int primos[100];          // Vetor para armazenar até 100 primos encontrados
+        int primos[1000];          // Vetor para armazenar até 100 primos encontrados
 
         // Garante que 'a' seja o menor e 'b' o maior
         if (a > b){
