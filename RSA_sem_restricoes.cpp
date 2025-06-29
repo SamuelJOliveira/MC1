@@ -1,144 +1,129 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 using namespace std;
 
-// 1) Teste de primalidade: trial division contando divisores
-bool ehPrimo(long long n)
-{
-    if (n < 2) {
-        return false;
-    }
-
-    int count = 0;
-
-    for (long long i = 1; i <= n; ++i){
-        if (n % i == 0) {
-            ++count;
-        }
-    }       
-
-    return count == 2;
+// 1) Teste de primalidade
+bool ehPrimo(long long n) {
+    if (n < 2) return false;
+    for (long long i = 2; i*i <= n; ++i)
+        if (n % i == 0) return false;
+    return true;
 }
 
-// 2) Algoritmo de Euclides para gcd(a,b)
-long long mdc(long long a, long long b)
-{
+// 2) GCD recursivo
+long long mdc(long long a, long long b) {
     return b == 0 ? a : mdc(b, a % b);
 }
 
-// 3) Euclides estendido: encontra x,y tais que a*x + b*y = gcd(a,b)
-long long bezout(long long a, long long b, long long &x, long long &y)
-{
+// 3) Euclides estendido
+long long bezout(long long a, long long b, long long &x, long long &y) {
     if (b == 0) {
         x = 1; y = 0;
         return a;
     }
     long long x1, y1;
     long long g = bezout(b, a % b, x1, y1);
-    long long q = a / b;
     x = y1;
-    y = x1 - q * y1;
+    y = x1 - (a / b) * y1;
     return g;
 }
 
-// 4) Inverso modular
-long long inversoModular(long long a, long long m) // Teste 1: a = 3, m = 11 → inverso esperado = 4
-{
+// 4) Inverso modular (garante 0 ≤ inv < m)
+long long inversoModular(long long a, long long m) {
     long long x, y;
     long long g = bezout(a, m, x, y);
-    return (x % m + m); //exemplo para ser testado x = 14 e m = 5 x = -3 m = 5
+    if (g != 1) return -1;
+    return (x % m + m) % m;
 }
 
-// 5) Expoção modular ingênua
-long long exponenciacaoModular(long long base, long long exp, long long mod)
-{
+// 5) Exponenciação modular rápida
+long long exponenciacaoModular(long long base, long long exp, long long mod) {
     long long res = 1;
     base %= mod;
-    for (long long i = 0; i < exp; ++i)
-        res = (res * base) % mod;
+    while (exp > 0) {
+        if (exp & 1) res = (res * base) % mod;
+        base = (base * base) % mod;
+        exp >>= 1;
+    }
     return res;
 }
 
-// 6) RSA: cifrar=true para encriptar, false para decriptar
-string rsa(const string &texto, bool cifrar, long long p, long long q)
-{
+// 6) RSA (cifra e decifra)
+string rsa(const string &texto, bool cifrar, long long p, long long q) {
     if (!ehPrimo(p) || !ehPrimo(q) || p == q)
         return "ERRO";
 
     long long n = p * q;
-    long long totiente = (p - 1) * (q - 1);
+    long long phi = (p - 1) * (q - 1);
 
-    // escolhe e ímpar e coprimo
+    // escolhe e
     long long e = 3;
-    while (e < totiente && mdc(e, totiente) != 1)
-        e += 2;
+    while (e < phi && mdc(e, phi) != 1) e += 2;
 
-    long long d = inversoModular(e, totiente);
+    long long d = inversoModular(e, phi);
     if (d < 0)
         return "ERRO";
 
-    if (cifrar)
-    {
-        // Cifra todos os caracteres ASCII (0–255)
+    // DEBUG: mostre esses valores para conferir
+    cout << "[DEBUG] n="<<n<<" φ(n)="<<phi<<" e="<<e<<" d="<<d<<"\n";
+
+    if (cifrar) {
         string codificado;
-        for (size_t i = 0; i < texto.length(); ++i) {
-            unsigned char ch = texto[i]; //garante que vai de 0 a 255
-            int m = int(ch);                       // 0…255
+        for (unsigned char ch : texto) {
+            long long m = ch;
             long long c = exponenciacaoModular(m, e, n);
-            codificado += to_string(c);
-            codificado += ' ';
+            codificado += to_string(c) + ' ';
         }
         return codificado;
     }
-    else
-    {
-        // Decodifica a sequência de números (separados por espaço)
-        string decodificado;
+    else {
+        string decodificado = "";
         string bloco;
         size_t i = 0;
-                while (i < texto.length()) {
-            if (texto[i] == ' '){
-                 ++i;
-                 continue;
-                }
-            bloco.clear();
-            while (i < texto.length() && texto[i] != ' '){
-                bloco += texto[i++];
-                long long c = stoll(bloco);
-                long long m = exponenciacaoModular(c, d, n);
-                decodificado += char(m);
 
+        // percorre toda a string “texto” contendo os números cifrados
+        while (i < texto.length()) {
+            // pula quaisquer espaços
+            if (texto[i] == ' ') {
+                ++i;
+                continue;
             }
+
+            // monta o próximo bloco numérico até encontrar espaço
+            bloco.clear();
+            while (i < texto.length() && texto[i] != ' ') {
+                bloco += texto[i++];
+            }
+
+            // converte string → inteiro c
+            long long c = stoll(bloco);
+
+            // aplica c^d mod n, obtendo o valor ASCII original
+            long long m = exponenciacaoModular(c, d, n);
+
+            // anexa o caractere correspondente ao código m (0–255)
+            decodificado += static_cast<char>(m);
         }
+
         return decodificado;
     }
 }
 
-int main()
-{
+int main() {
     long long p, q;
     cout << "Digite dois numeros primos p e q: ";
-    cin >> p >> q;
-    cin.ignore();  // consome '\n'
+    if (!(cin >> p >> q)) return 0;
+    cin.ignore();  // descarta '\n'
 
     string mensagem;
     cout << "Mensagem para cifrar: ";
     getline(cin, mensagem);
 
-    // Criptografa
     string cifrado = rsa(mensagem, true, p, q);
-    if (cifrado == "ERRO") {
-        cerr << "Erro nos parametros.\n";
-        return 1;
-    }
     cout << "Texto cifrado: " << cifrado << "\n";
 
-    // Descriptografa
     string decifrado = rsa(cifrado, false, p, q);
-    if (decifrado == "ERRO") {
-        cerr << "Erro ao decifrar.\n";
-        return 1;
-    }
     cout << "Texto decifrado: " << decifrado << "\n";
 
     return 0;
