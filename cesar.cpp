@@ -7,10 +7,10 @@
         string codificada = "";
         for (int i = 0; i < entrada.length(); i++) {
             if (entrada[i] >= 'A' && entrada[i] <= 'Z'){
-                codificada += 'A' + ((entrada[i] + 3 - 'A') % 26);
+                codificada += 'A' + ((entrada[i] - 3 - 'A') % 26);
             }
             else if(entrada[i] >= 'a' && entrada[i] <= 'z'){
-                    codificada += 'a' + ((entrada[i] + 3 - 'a') % 26);
+                    codificada += 'a' + ((entrada[i] - 3 - 'a') % 26);
                 }
             else {
                 codificada += entrada[i];
